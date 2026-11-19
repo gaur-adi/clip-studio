@@ -1,0 +1,10 @@
+.venv
+work
+out
+logs
+models
+.env
+youtube_*.json
+secrets
+__pycache__
+*.pyc

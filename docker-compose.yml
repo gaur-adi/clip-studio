@@ -1,0 +1,19 @@
+services:
+  clipstudio:
+    build: .
+    image: clipstudio:latest
+    container_name: clipstudio
+    ports:
+      - "127.0.0.1:8765:8765"        # only this computer can open it
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-}  # e.g. http://YOUR-LLM-HOST:11434 (a GPU machine running Ollama); set in .env
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:12b}
+    volumes:
+      - ./out:/app/out               # finished Shorts
+      - ./final:/app/final           # upload-ready Shorts + metadata JSON
+      - ./music:/app/music           # your music (phonk loops + library.json)
+      - ./logs:/app/logs
+      - ./work:/app/work             # temp: live buffer + moments
+      - ./docs:/app/docs
+      - ./secrets:/app/secrets       # youtube_client_secret.json / youtube_token.json
+    restart: unless-stopped

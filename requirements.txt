@@ -1,0 +1,8 @@
+websockets
+pillow
+numpy
+opencv-python-headless
+yt-dlp
+streamlink
+google-api-python-client
+google-auth-oauthlib

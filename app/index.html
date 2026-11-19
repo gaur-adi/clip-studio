@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clip Studio</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--tx:#e8eaf0;--mut:#8b93a5;--ac:#7c5cff;--ok:#2ecc71;--bad:#ff5c6c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 16px 80px}h1{font-size:22px;margin:0 0 4px}.sub{color:var(--mut);margin:0 0 18px}
+.pills span{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);margin-right:6px;color:var(--mut)}.pills .ok{color:var(--ok)}.pills .no{color:var(--bad)}
+.tabs{display:flex;gap:8px;margin:18px 0 10px}.tabs button{background:none;border:1px solid var(--line);color:var(--mut);padding:7px 14px;border-radius:8px;cursor:pointer}.tabs .on{color:var(--tx);border-color:var(--ac);background:#1e1a38}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px 0}
+input,select,textarea{background:#0f1115;border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:8px 10px;font:inherit;width:100%}
+textarea{resize:vertical}label{display:block;font-size:12px;color:var(--mut);margin:8px 0 3px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
+button.go{background:var(--ac);border:0;color:#fff;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:600;font:inherit;font-weight:600}button.go:disabled{opacity:.5}
+button.sec{background:none;border:1px solid var(--line);color:var(--tx);padding:7px 12px;border-radius:8px;cursor:pointer}
+.log{font:12px ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin-top:10px;max-height:150px;overflow:auto}
+.chip{display:inline-block;font-size:12px;background:#222838;border-radius:99px;padding:2px 9px;margin:0 6px 4px 0;color:#b9c1d6}
+.score{float:right;font-weight:700;color:var(--ac)}.txt{color:var(--mut);font-style:italic;margin:6px 0}
+.err{color:var(--bad)}video{width:100%;max-width:300px;border-radius:10px;background:#000}.out{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}.out>div{flex:1;min-width:240px}
+small{color:var(--mut)}.warn{border-color:#5a4a1a;background:#221d10}
+.rv{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;background:#12151c}.rv h4{margin:0 0 6px;font-size:14px}
+.sc{display:inline-block;min-width:92px;margin:2px 8px 2px 0}.sc b{color:var(--tx)}.sc.low b{color:var(--bad)}.sc.hi b{color:var(--ok)}
+.st-planned,.st-ready{color:var(--ok)}.st-needs_review{color:#ffb45c}.st-rejected,.st-render_failed,.st-duplicate{color:var(--bad)}
+.rv ul{margin:4px 0 4px 18px;padding:0;color:var(--mut);font-size:13px}.q{font-style:italic;color:var(--mut)}
+</style></head><body><main>
+<h1>Clip Studio</h1><p class="sub">Paste a YouTube or Twitch link. It finds the best moments and renders vertical Shorts (captions, your commentary, quiet music). Runs only on this Mac.</p>
+<div class="pills" id="health"></div>
+<div class="tabs"><button id="t1" class="on" onclick="tab(1)">Video / VOD link</button><button id="t2" onclick="tab(2)">Live stream</button></div>
+
+<div class="card" id="p1">
+  <label>YouTube or Twitch video / VOD / clip link</label>
+  <input id="url" placeholder="https://www.twitch.tv/videos/123456789  or  https://www.youtube.com/watch?v=...">
+  <div class="row"><div><label>Analyse from (optional, e.g. 1:20:00)</label><input id="from"></div><div><label>to (optional)</label><input id="to"></div><div><label>Speech language</label><select id="alang"><option value="auto">Auto-detect</option><option value="hi">Hindi</option><option value="en">English</option></select></div></div>
+  <p><button class="go" id="abtn" onclick="analyze()">Analyse</button> <small>Long VODs: give a range to go faster (about 1 min per hour of video).</small></p>
+  <div class="log" id="alog"></div>
+</div>
+
+<div class="card" id="p2" style="display:none">
+  <label>Live stream link (twitch.tv/channel also uses chat bursts as a signal)</label>
+  <input id="lurl" placeholder="https://www.twitch.tv/channelname  or  https://www.youtube.com/watch?v=LIVE_ID">
+  <div class="row"><div><label>Sensitivity (lower = more moments)</label><input id="lsens" type="number" step="0.2" value="3.0"></div><div><label>Speech language</label><select id="llang"><option value="auto">Auto-detect</option><option value="hi">Hindi (force Devanagari captions)</option><option value="en">English</option></select></div></div>
+  <div class="row"><div><label>Min AI score to make a Short (0-10)</label><input id="lmin" type="number" value="5" step="0.5"></div>
+  <div><label>YouTube privacy on auto-post</label><select id="lpriv"><option>public</option><option>unlisted</option><option>private</option></select></div></div>
+  <p><label style="display:inline"><input type="checkbox" id="lauto" style="width:auto" checked> auto-make a 40 s Short for every moment</label><br>
+  <label style="display:inline"><input type="checkbox" id="lgs" style="width:auto"> also caption the game's own English dialogue (light-blue) when the stream is Hindi</label><br>
+  <label style="display:inline"><input type="checkbox" id="lcf" style="width:auto"> music: only claim-free tracks (my synthesised ones; Pixabay tracks can trigger Content ID claims)</label><br>
+  <label style="display:inline"><input type="checkbox" id="lpost" style="width:auto"> auto-post each Short to my YouTube (needs <code>docs/YOUTUBE_SETUP.md</code> done once)</label></p>
+  <p><button class="go" onclick="liveStart()">Start AI watching</button> <button class="sec" onclick="liveStop()">Stop</button></p>
+  <div class="log" id="llog"></div>
+  <div id="running" style="margin-top:8px"></div>
+  <small>No full recording: only the last ~4 min is held in a rolling buffer (deleted continuously, wiped on Stop). When the AI sees a moment it cuts ~35 s out of the buffer, and only those clips are kept.</small>
+</div>
+
+<div id="perm" class="card warn" style="display:none!important">
+  <b>Permission gate</b> <small>(rendering is blocked until this is filled in; saved to docs/allowed_creators.json)</small>
+  <div class="row"><div><label>Creator name (credited in the description)</label><input id="creator"></div>
+  <div style="flex:2"><label>Where did they allow clipping + reposting? (link, rules page, DM date)</label><input id="pnote"></div></div>
+  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pok" style="width:auto"> This creator has explicitly allowed clipping and reposting, and I will add my own commentary.</label>
+</div>
+<div id="cands"></div>
+<script>
+let SRC=null,INFO=null,LOCAL=null,MUSIC=[],liveId=null,liveTimer=null;
+const $=id=>document.getElementById(id);
+const hms=s=>{s=Math.max(0,Math.round(s));return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':')};
+const secs=t=>{t=String(t).trim();if(!t)return null;const p=t.split(':').map(Number).reverse();return p.reduce((a,v,i)=>a+v*60**i,0)};
+async function api(p,b){const r=await fetch(p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});return r.json()}
+function tab(n){$('p1').style.display=n==1?'':'none';$('p2').style.display=n==2?'':'none';$('t1').className=n==1?'on':'';$('t2').className=n==2?'on':''}
+async function health(){const h=await api('/api/health');$('health').innerHTML=Object.entries(h).map(([k,v])=>`<span class="${v?'ok':'no'}">${v?'✓':'✗'} ${k}</span>`).join('')}
+async function poll(id,logEl,done){const j=await api('/api/job/'+id);logEl.textContent=j.log.join('\n');
+  if(j.status=='running')return setTimeout(()=>poll(id,logEl,done),1500);
+  if(j.status=='error'){logEl.innerHTML='<span class="err">'+j.error+'</span>';return done(null)}done(j.result)}
+function analyze(){const url=$('url').value.trim();if(!url)return;$('abtn').disabled=true;$('cands').innerHTML='';
+  api('/api/analyze',{url,from:secs($('from').value),to:secs($('to').value),lang:$('alang').value}).then(r=>{
+    if(r.error){$('alog').innerHTML='<span class="err">'+r.error+'</span>';$('abtn').disabled=false;return}
+    poll(r.job,$('alog'),res=>{$('abtn').disabled=false;if(res){SRC=res.source;INFO=res.info;LOCAL=null;show(res.candidates)}})})}
+function hdrHtml(c,i){return `<span class="score" title="rank score">${c.virality!=null?`🔥 ${c.virality}/10 · `:''}${c.score}</span><b>#${i+1} · ${c.wall?c.wall+' · ':''}${hms(c.start)} → ${hms(c.start+c.dur)}</b> ${(c.link?`<a href="${c.link}" target="_blank" style="color:var(--ac)">open source ↗</a>`:'')}
+   <div>${(c.why||[]).map(w=>`<span class="chip">${w}</span>`).join('')}${(c.warn||[]).map(w=>`<span class="chip" style="color:#ffb45c">⚠ ${w}</span>`).join('')}</div>${c.preview?`<video controls preload="metadata" src="${c.preview}" style="max-width:220px;float:right;margin-left:12px"></video>`:''}${c.judging?'<small>Waiting for the AI on your laptop (it judges one moment at a time, ~30 s each)...</small>':''}${c.text?`<div class="txt">“${c.text}”</div>`:''}`}
+// live moments update IN PLACE: your edits, the running render and its result are never wiped
+function show(cs,live){if(INFO&&INFO.uploader&&!$('creator').value)$('creator').value=INFO.uploader;
+  if(!live)$('cands').innerHTML=cs.length?'':'<div class="card">No clear peaks found. Try a different range.</div>';
+  cs.forEach((c,i)=>{let d=c.id?document.getElementById('c_'+c.id):null;
+   if(d){d._c=c;const hd=d.querySelector('.hdr'),pv=hd.querySelector('video'),keep=pv&&!pv.paused;if(!keep)hd.innerHTML=hdrHtml(c,i);else{hd.querySelector('.score').outerHTML=hdrHtml(c,i).match(/<span class="score".*?<\/span>/)[0]}
+     d.querySelector('.postbox').innerHTML=postHtml(c);updReview(d,c);
+     const ov=d.querySelector('.ov'),ti=d.querySelector('.ti');
+     if(c.hook&&!ov.dataset.touched)ov.value=c.hook;
+     if(c.title&&!ti.dataset.touched)ti.value=c.title;return}
+   d=document.createElement('div');d.className='card';if(c.id)d.id='c_'+c.id;d._c=c;
+   d.innerHTML=`<div class="hdr">${hdrHtml(c,i)}</div>
+   <div class="row"><div><label>Start</label><input class="st" value="${hms(c.start)}"></div><div><label>Length (8-45 s)</label><input class="du" type="number" min="20" max="45" value="${c.dur}"></div>
+   <div><label>Framing</label><select class="md"><option value="blur">Blur fit (default)</option><option value="auto">AI auto facecam (experimental)</option><option value="stack">Gameplay + facecam</option><option value="center">Center crop</option></select></div>
+   <div><label>Music level dB (lower = quieter)</label><input class="mdb" type="number" value="-21" step="1"></div>
+   <div><label>Music</label><select class="mu"><option value="auto" selected>Auto phonk (matches energy)</option><option value="">none</option>${MUSIC.map(m=>`<option>${m}</option>`).join('')}</select></div></div>
+   <div class="row fc" style="display:none"><div><label>Facecam rect x,y,w,h (0-1 of frame)</label><input class="fa" value="0.02,0.62,0.22,0.36"></div></div>
+   <label>Your commentary on screen (required for transformative value)</label><input class="ov" value="${(c.hook||'').replace(/"/g,'&quot;')}" placeholder="e.g. Nobody told him about the helicopter">
+   <label>Post title</label><input class="ti" value="${(c.title||'').replace(/"/g,'&quot;')}">
+   <p><button class="go">Render Short</button></p><div class="log"></div><div class="res"></div><div class="review"></div><div class="postbox">${postHtml(c)}</div>`;
+   d.querySelector('.ov').addEventListener('input',e=>e.target.dataset.touched=1);d.querySelector('.ti').addEventListener('input',e=>e.target.dataset.touched=1);
+   d.querySelector('.md').onchange=e=>d.querySelector('.fc').style.display=e.target.value=='stack'?'':'none';
+   d.querySelector('.go').onclick=()=>render(d,d._c);
+   updReview(d,c);
+   if(live)$('cands').prepend(d);else $('cands').appendChild(d)})}
+function render(d,c){const g=s=>d.querySelector(s);const btn=g('.go');
+  const body={source:SRC,info:INFO,local_file:c.file||LOCAL,start:secs(g('.st').value),dur:+g('.du').value,mode:g('.md').value,face:g('.fa').value,music:g('.mu').value,music_db:+g('.mdb').value,
+   overlay:g('.ov').value,words_file:c.words_file||null,game_subs:($('lgs')?$('lgs').checked:false),lang:($('llang')&&$('p2').style.display!=='none'?$('llang').value:$('alang').value),text:c.text||'',virality:c.virality||null,claim_free_only:$('lcf')?$('lcf').checked:false,title:g('.ti').value,creator:$('creator').value||(INFO&&INFO.uploader)||''};
+  btn.disabled=true;g('.res').innerHTML='';
+  api('/api/render',body).then(r=>poll(r.job,g('.log'),res=>{btn.disabled=false;if(!res)return;
+   g('.res').innerHTML=`<div class="out"><video controls src="${res.video}"></video><div><label>Title</label><input readonly value="${res.title.replace(/"/g,'&quot;')}"><label>Description</label><textarea rows="9" readonly>${res.description}</textarea>
+   <p><a class="sec" style="color:var(--tx)" href="${res.video}" download>Download MP4</a> <button class="sec" onclick="navigator.clipboard.writeText(this.closest('div').querySelector('textarea').value)">Copy description</button></p></div></div>`}))}
+async function liveStart(){const r=await api('/api/live/start',{url:$('lurl').value,sens:$('lsens').value,auto_render:$('lauto').checked,auto_post:$('lpost').checked,game_subs:$('lgs').checked,lang:$('llang').value,claim_free_only:$('lcf').checked,min:$('lmin').value,privacy:$('lpriv').value});if(r.error){$('llog').innerHTML='<span class="err">'+r.error+'</span>';return}
+  attach(r.live,$('lurl').value)}
+async function liveTick(){if(!liveId)return;const s=await api('/api/live/'+liveId);if(s.error)return;
+  $('llog').textContent=`${s.status}${s.error?' ('+s.error+')':''} · buffer ${s.buffer_secs}s · live score ${s.last_score} / threshold ${s.threshold} · chat ${s.chat?'on':'off'} · ${s.moments.length} moment(s)`;
+  INFO.uploader=s.channel||INFO.uploader;const key=s.moments.map(m=>m.id+m.judging+(m.virality||'')+m.state+JSON.stringify(m.post||{})+JSON.stringify((m.plan||{}).segments||[])).join();
+  if(key!==window.lastKey){window.lastKey=key;show(s.moments,true)}}
+function liveStop(){if(liveId)api('/api/live/stop/'+liveId,{});clearInterval(liveTimer);try{sessionStorage.removeItem('liveId')}catch(e){}liveId=null;$('llog').textContent='stopped';listRunning()}
+function attach(id,url){liveId=id;try{sessionStorage.setItem('liveId',id)}catch(e){}$('lurl').value=url||$('lurl').value;SRC=url;INFO={uploader:'',extractor:'twitch',webpage_url:SRC,id:liveId};window.lastKey='';$('cands').innerHTML='';tab(2);liveTick();clearInterval(liveTimer);liveTimer=setInterval(liveTick,5000)}
+async function listRunning(){const ls=await api('/api/live')||[];const el=$('running');if(!el)return;
+  el.innerHTML=ls.length?'Streams being watched (any tab): '+ls.map(l=>`<button class="sec" style="margin:2px" onclick="attach('${l.id}','${l.url}')">${l.url.replace('https://www.','')} · ${l.status}${l.id===liveId?' ✓ this tab':''}</button>`).join(''):''}
+(async()=>{let id=null;try{id=sessionStorage.getItem('liveId')}catch(e){}   // each browser tab keeps its OWN stream
+  const ls=await api('/api/live')||[];const mine=ls.find(l=>l.id===id);if(mine)attach(mine.id,mine.url);listRunning();setInterval(listRunning,8000)})();
+function postHtml(c){const p=c.post;if(!p)return '';const col={uploaded:'var(--ok)',error:'var(--bad)',skipped:'var(--mut)'}[p.status]||'var(--ac)';
+ return `<div class="card" style="margin:10px 0 0;border-color:${col}"><b style="color:${col}">${p.status}</b> ${p.note||p.error||''} ${p.final?`<br><small>📁 saved: ${p.final}.mp4 + .json</small>`:''} ${p.music?`<br><small>🎵 ${p.music} — ${p.music_why||''}</small>`:''} ${p.url?`<a href="${p.url}" target="_blank" style="color:var(--ac)">${p.url}</a>`:''}
+ ${p.video?`<div class="out"><video controls src="${p.video}"></video><div><label>Title</label><input class="pt" value="${(p.title||'').replace(/"/g,'&quot;')}"><label>Description</label><textarea class="pd" rows="8">${p.description||''}</textarea>
+ <p><button class="sec" onclick="postNow('${c.id}',this)">Post to YouTube now</button> <a style="color:var(--tx)" class="sec" href="${p.video}" download>Download MP4</a></p></div></div>`:''}</div>`}
+async function postNow(mid,btn){const d=btn.closest('.card').parentElement;const r=await api('/api/post',{live:liveId,moment:mid,title:d.querySelector('.pt').value,description:d.querySelector('.pd').value,privacy:$('lpriv').value});if(r.error)alert(r.error)}
+
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function updReview(d,c){const rv=d.querySelector('.review');if(!rv||!c.plan)return;
+  const sig=JSON.stringify([c.state,c.plan.segments,c.plan.scores,c.plan.reasons,c.post&&c.post.status]);
+  if(rv.dataset.sig===sig||rv.dataset.busy)return;if(rv.contains(document.activeElement)&&rv.dataset.sig)return;rv.dataset.sig=sig;rv.innerHTML=reviewHtml(c);}
+function reviewHtml(c){const p=c.plan,sg=p.segments||[],sc=p.scores,len=sg.reduce((a,g)=>a+g.end-g.start,0),st=c.state||p.state;
+  const th=window.SETTINGS?SETTINGS.thresholds:{hook:7,clarity:7,payoff:7};
+  const scoreHtml=sc?['hook','clarity','payoff','energy'].map(k=>{const v=sc[k],cls=k in th?(v<th[k]?'low':v>=th[k]+1?'hi':''):'';return `<span class="sc ${cls}">${k} <b>${v}</b>/10</span>`}).join('')+(p.editorial_quality!=null?`<span class="sc">editorial <b>${p.editorial_quality}</b></span>`:''):'<span class="chip" style="color:#ffb45c">unscored (no valid model answer)</span>';
+  const ev=p.evidence||{},vis=p.visual;
+  const act=['needs_review','planned','rejected'].includes(st)&&sg.length;
+  return `<div class="rv"><h4>Edit plan <span class="st-${esc(st)}">● ${esc(st)}</span> <small>· ${esc(p.planner||'')} ${esc(p.model||'')} ${esc(p.prompt_version||'')}</small></h4>
+  <div>source window ${c.dur||'?'} s → edited <b>${len.toFixed(1)} s</b>${p.time_to_payoff!=null?` · payoff ${p.time_to_payoff}s in`:''}${p.auto_tightened?' · <span class="chip">auto-tightened</span>':''}</div>
+  <div style="margin:4px 0">${scoreHtml}</div>
+  ${p.what_happens?`<div>${esc(p.what_happens)}</div>`:''}
+  <ul>${sg.map(g=>`<li>${hms(g.start)} → ${hms(g.end)} (${(g.end-g.start).toFixed(1)}s) ${esc(g.role||'')} ${esc(g.note||'')}</li>`).join('')}</ul>
+  ${ev.opening?`<div class="q">opening @${ev.opening.t}s “${esc(ev.opening.quote)}” ${ev.opening.verified?'✓':'⚠ not found in transcript'}</div>`:''}${ev.payoff?`<div class="q">payoff @${ev.payoff.t}s “${esc(ev.payoff.quote)}” ${ev.payoff.verified?'✓':'⚠ not found in transcript'}</div>`:''}
+  ${vis?`<div class="q">vision check: ${vis.available?(vis.payoff_visible?'payoff visible':'payoff NOT visible'):'unavailable'} — ${esc(vis.what)}</div>`:''}
+  <ul>${(p.reasons||[]).map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
+  ${act?`<div class="row" style="align-items:end"><div><label>Start (source s)</label><input class="rs" type="number" step="0.1" value="${sg[0].start}"></div><div><label>End (source s)</label><input class="re" type="number" step="0.1" value="${sg[sg.length-1].end}"></div>
+  <div><label>Framing</label><select class="rp"><option value="context">context (full frame over blur)</option><option value="gameplay">gameplay (large crop)</option><option value="gameplay_facecam">gameplay + facecam panel</option></select></div></div>
+  <p><button class="sec" onclick="planAdj(this,'${c.id}')">Apply timing</button> <button class="go" onclick="planGo(this,'${c.id}',false)">Approve &amp; render</button> <button class="sec" onclick="planReject(this,'${c.id}')">Reject</button>
+  <small>Quality checks still run after rendering; a failed clip goes to review/, not final/.</small></p>`:''}</div>`}
+async function planAdj(b,id){const rv=b.closest('.review');const r=await api('/api/plan/update',{live:liveId,moment:id,start:+rv.querySelector('.rs').value,end:+rv.querySelector('.re').value});
+  if(r.error){alert(r.error);return}rv.dataset.sig='';window.lastKey=''}
+async function planGo(b,id,force){const rv=b.closest('.review');const r=await api('/api/approve',{live:liveId,moment:id,preset:rv.querySelector('.rp').value,force});
+  if(r.error){alert(r.error);return}rv.dataset.sig='';window.lastKey=''}
+async function planReject(b,id){if(!confirm('Reject this moment?'))return;const r=await api('/api/reject',{live:liveId,moment:id});if(r.error)alert(r.error);window.lastKey=''}
+api('/api/settings').then(x=>window.SETTINGS=x);
+health();api('/api/music').then(m=>MUSIC=m);
+</script></main></body></html>

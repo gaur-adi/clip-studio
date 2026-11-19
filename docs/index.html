@@ -1,0 +1,38 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clip Studio</title><meta name="description" content="A local, free-tool pipeline that turns live streams into tightly edited vertical Shorts.">
+<style>
+:root{--bg:#0f1115;--fg:#e8eaf0;--mut:#9aa3b2;--card:#171a21;--ac:#ffd400;--ln:#262b36}
+@media(prefers-color-scheme:light){:root{--bg:#fafafa;--fg:#14161a;--mut:#5b6472;--card:#fff;--ac:#b88a00;--ln:#e3e6ec}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:48px 16px}h1{font-size:2.4rem;margin:0}h2{margin-top:2.4rem;border-bottom:1px solid var(--ln);padding-bottom:.3rem}
+.tag{color:var(--ac);font-weight:600}p.lead{font-size:1.15rem;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.c{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:14px}.c b{display:block;margin-bottom:4px}
+code,pre{background:var(--card);border:1px solid var(--ln);border-radius:6px}code{padding:1px 5px}pre{padding:12px;overflow:auto}
+ol li{margin:.3rem 0}small{color:var(--mut)}
+</style></head><body><main>
+<h1>Clip Studio</h1><p class="tag">Live stream → tight, honest Short</p>
+<p class="lead">A local web app that watches live streams with a rolling buffer, finds moments, plans a real edit (setup → payoff → reaction), renders 1080×1920 Shorts with Hindi/English captions, and checks quality before anything reaches your output folder. Runs on your machines with free tools only.</p>
+<h2>How a clip is made</h2>
+<ol><li><b>Detect</b> – audio jumps, motion and chat spikes in a rolling buffer (no full recording).</li>
+<li><b>Transcribe</b> – Qwen3-ASR with forced alignment on a Mac; word times kept for the whole source.</li>
+<li><b>Plan the edit</b> – an LLM sees the timestamped transcript and returns segments, named scores (hook, clarity, payoff, energy) and verbatim evidence quotes that are checked against the transcript.</li>
+<li><b>Gate</b> – weak hook, clarity or payoff is rejected or sent to review; energy cannot compensate.</li>
+<li><b>Snap and tighten</b> – cuts never land inside a word; a late payoff is trimmed closer to the setup.</li>
+<li><b>Frame</b> – presets: context, gameplay, gameplay + facecam, with phone safe areas.</li>
+<li><b>Caption</b> – words remapped through the same segment map as the cut; measured wrapping; opening-only banner.</li>
+<li><b>Verify</b> – optional vision check of the payoff frames, duplicate registry, quality gate (duration, black/silence, caption bounds, face overlap).</li></ol>
+<h2>Design principles</h2>
+<div class="grid">
+<div class="c"><b>Honest scores</b>Named scores with reasons; a model's number is never presented as a virality probability.</div>
+<div class="c"><b>Fails safe</b>Model down or invalid answer → unscored heuristic plan marked for review, never auto-approved.</div>
+<div class="c"><b>Accurate metadata</b>Game and creator come only from verified settings or stream info; no invented launch or permission claims.</div>
+<div class="c"><b>Human in the loop</b>Nothing uploads or publishes unless you explicitly do it.</div></div>
+<h2>Tested on a real clip</h2>
+<p>On a 40 s controller-disconnect clip the planner kept hook 7 / clarity 8 / payoff 9, saw the payoff arrive 17.6 s into the edit, and tightened it to a 16.5 s cut with the payoff at 7.4 s and no word cut. Quality gate passed. <small>One clip is an anecdote, not a benchmark; retention results are measured only after publishing.</small></p>
+<h2>Run it</h2>
+<pre>git clone &lt;this repo&gt;
+cd clip-studio
+cp .env.example .env     # point at your Ollama host
+./run_app.sh</pre>
+<p><small>Requires ffmpeg, streamlink, Python 3, Ollama (e.g. gemma4:12b), and a Mac with the Qwen3-ASR environment for speech recognition. Only clip content you have permission to reuse.</small></p>
+</main></body></html>

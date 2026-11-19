@@ -1,0 +1,33 @@
+# secrets / machine-specific
+secrets/
+ollama_host.txt
+ollama_model.txt
+config.json
+*.token
+*.pickle
+# media, models, outputs, runtime data
+final/
+published/
+review/
+previews/
+out/
+work/
+logs/
+data/
+models/
+music/
+dev-previews/
+backup-pre-upgrade-*/
+kdenlive/
+.venv*/
+__pycache__/
+*.pyc
+*.mp4
+*.mov
+*.wav
+*.mp3
+.DS_Store
+.env
+youtube_client_secret.json
+youtube_token.json
+*.sqlite3
