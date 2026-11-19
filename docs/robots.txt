@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://gaur-adi.github.io/clip-studio/sitemap.xml

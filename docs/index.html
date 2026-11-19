@@ -1,38 +1,523 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Clip Studio</title><meta name="description" content="A local, free-tool pipeline that turns live streams into tightly edited vertical Shorts.">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clip Studio: free open-source AI clipper for live streams to YouTube Shorts</title>
+<meta name="description" content="Clip Studio is a free, open-source, local AI video clipper: it watches live streams (Twitch, YouTube), plans the edit around the payoff and renders captioned 1080x1920 YouTube Shorts with a quality gate. Hindi and English captions, Ollama, no cloud.">
+<meta name="keywords" content="YouTube Shorts clipper, live stream clipper, Twitch clips to Shorts, AI video clipper, stream highlights, auto clip generator, Ollama, Hindi captions, open source, vertical video editor">
+<link rel="canonical" href="https://gaur-adi.github.io/clip-studio/">
+<meta property="og:type" content="website"><meta property="og:title" content="Clip Studio: free open-source AI clipper for live streams to YouTube Shorts">
+<meta property="og:description" content="Watches live streams, plans the edit around the payoff, renders captioned vertical Shorts, and checks quality before anything is published. Local, free tools.">
+<meta property="og:url" content="https://gaur-adi.github.io/clip-studio/"><meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Clip Studio","applicationCategory":"MultimediaApplication","operatingSystem":"macOS, Linux","description":"Local, open-source tool that turns live streams into edited vertical YouTube Shorts with AI edit planning, captions and a quality gate.","url":"https://gaur-adi.github.io/clip-studio/","codeRepository":"https://github.com/gaur-adi/clip-studio","license":"https://opensource.org/licenses/MIT","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&family=Hind:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <style>
-:root{--bg:#0f1115;--fg:#e8eaf0;--mut:#9aa3b2;--card:#171a21;--ac:#ffd400;--ln:#262b36}
-@media(prefers-color-scheme:light){:root{--bg:#fafafa;--fg:#14161a;--mut:#5b6472;--card:#fff;--ac:#b88a00;--ln:#e3e6ec}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,sans-serif}
-main{max-width:860px;margin:0 auto;padding:48px 16px}h1{font-size:2.4rem;margin:0}h2{margin-top:2.4rem;border-bottom:1px solid var(--ln);padding-bottom:.3rem}
-.tag{color:var(--ac);font-weight:600}p.lead{font-size:1.15rem;color:var(--mut)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.c{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:14px}.c b{display:block;margin-bottom:4px}
-code,pre{background:var(--card);border:1px solid var(--ln);border-radius:6px}code{padding:1px 5px}pre{padding:12px;overflow:auto}
-ol li{margin:.3rem 0}small{color:var(--mut)}
-</style></head><body><main>
-<h1>Clip Studio</h1><p class="tag">Live stream → tight, honest Short</p>
-<p class="lead">A local web app that watches live streams with a rolling buffer, finds moments, plans a real edit (setup → payoff → reaction), renders 1080×1920 Shorts with Hindi/English captions, and checks quality before anything reaches your output folder. Runs on your machines with free tools only.</p>
-<h2>How a clip is made</h2>
-<ol><li><b>Detect</b> – audio jumps, motion and chat spikes in a rolling buffer (no full recording).</li>
-<li><b>Transcribe</b> – Qwen3-ASR with forced alignment on a Mac; word times kept for the whole source.</li>
-<li><b>Plan the edit</b> – an LLM sees the timestamped transcript and returns segments, named scores (hook, clarity, payoff, energy) and verbatim evidence quotes that are checked against the transcript.</li>
-<li><b>Gate</b> – weak hook, clarity or payoff is rejected or sent to review; energy cannot compensate.</li>
-<li><b>Snap and tighten</b> – cuts never land inside a word; a late payoff is trimmed closer to the setup.</li>
-<li><b>Frame</b> – presets: context, gameplay, gameplay + facecam, with phone safe areas.</li>
-<li><b>Caption</b> – words remapped through the same segment map as the cut; measured wrapping; opening-only banner.</li>
-<li><b>Verify</b> – optional vision check of the payoff frames, duplicate registry, quality gate (duration, black/silence, caption bounds, face overlap).</li></ol>
-<h2>Design principles</h2>
-<div class="grid">
-<div class="c"><b>Honest scores</b>Named scores with reasons; a model's number is never presented as a virality probability.</div>
-<div class="c"><b>Fails safe</b>Model down or invalid answer → unscored heuristic plan marked for review, never auto-approved.</div>
-<div class="c"><b>Accurate metadata</b>Game and creator come only from verified settings or stream info; no invented launch or permission claims.</div>
-<div class="c"><b>Human in the loop</b>Nothing uploads or publishes unless you explicitly do it.</div></div>
-<h2>Tested on a real clip</h2>
-<p>On a 40 s controller-disconnect clip the planner kept hook 7 / clarity 8 / payoff 9, saw the payoff arrive 17.6 s into the edit, and tightened it to a 16.5 s cut with the payoff at 7.4 s and no word cut. Quality gate passed. <small>One clip is an anecdote, not a benchmark; retention results are measured only after publishing.</small></p>
-<h2>Run it</h2>
-<pre>git clone &lt;this repo&gt;
-cd clip-studio
-cp .env.example .env     # point at your Ollama host
-./run_app.sh</pre>
-<p><small>Requires ffmpeg, streamlink, Python 3, Ollama (e.g. gemma4:12b), and a Mac with the Qwen3-ASR environment for speech recognition. Only clip content you have permission to reuse.</small></p>
-</main></body></html>
+:root{
+  --paper:#F4F1EA; --paper2:#EAE5DA; --ink:#14161A; --red:#FF4B2B; --yel:#FFE000; --mut:#6B6F76;
+  --disp:"Bricolage Grotesque","Hind",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{background:var(--paper)}
+body{background:var(--paper);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+#filters{position:fixed;width:0;height:0;opacity:0;pointer-events:none}
+
+/* ---------- the film: 1920x1080 stage scaled into the hero ---------- */
+#hero{position:relative;width:100%;height:min(100vh,56.25vw);min-height:240px;overflow:hidden;background:var(--paper)}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);overflow:hidden;background:var(--paper)}
+#world{position:absolute;inset:0;will-change:transform}
+.abs{position:absolute}
+.h{opacity:0;visibility:hidden}                 /* hidden state lives in CSS; tweens use immediateRender:false */
+
+#paper{position:absolute;inset:0;background:linear-gradient(160deg,#F7F4ED 0%,var(--paper) 50%,#ECE6D8 100%)}
+#paper .b{position:absolute;border-radius:50%;pointer-events:none}
+#paper .b1{left:-300px;top:-420px;width:1100px;height:1100px;background:radial-gradient(circle,rgba(255,75,43,.13),transparent 66%)}
+#paper .b2{left:1160px;top:420px;width:1100px;height:1100px;background:radial-gradient(circle,rgba(255,224,0,.22),transparent 66%)}
+#grid{position:absolute;inset:-60px;background-image:linear-gradient(rgba(20,22,26,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(20,22,26,.07) 1px,transparent 1px);background-size:120px 120px}
+#grain{position:absolute;inset:-100px;opacity:.5;mix-blend-mode:multiply;pointer-events:none;z-index:60;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08  0 0 0 0 0.08  0 0 0 0 0.1  0 0 0 .22 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>")}
+#ink{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,#1D2026,var(--ink) 70%);clip-path:circle(0px at 960px 660px);z-index:5}
+
+/* top bar */
+#top{position:absolute;left:80px;right:80px;top:52px;display:flex;justify-content:space-between;align-items:center;color:var(--ink);z-index:30;font-family:var(--mono);font-size:26px;letter-spacing:.04em}
+#live{display:flex;align-items:center;gap:14px;font-weight:600}
+#live i{width:20px;height:20px;border-radius:50%;background:var(--red);display:block;box-shadow:0 0 0 0 rgba(255,75,43,.5)}
+#tc{font-variant-numeric:tabular-nums;min-width:12ch;text-align:right}
+
+/* headings: one per scene */
+.hd{position:absolute;font-family:var(--disp);font-weight:600;letter-spacing:-.025em;line-height:1.02;white-space:nowrap;z-index:20}
+.wd{display:inline-block;white-space:nowrap;margin-right:.26em}.wd:last-child{margin-right:0}
+.wd>span{display:inline-block}
+.hd em{font-style:normal;background:linear-gradient(transparent 62%,var(--yel) 62%,var(--yel) 94%,transparent 94%);padding:0 .04em}
+.lbl{font-family:var(--mono);font-size:22px;letter-spacing:.03em;color:var(--mut)}
+
+/* strip = the one world every early scene lives on */
+#strip{position:absolute;left:0;top:620px;width:3700px;height:300px;z-index:10}
+#bars{position:absolute;left:0;top:90px;height:200px;width:3700px}
+#bars b{position:absolute;bottom:100px;width:14px;border-radius:7px;background:var(--ink);transform-origin:50% 100%}
+#bars b::after{content:"";position:absolute;left:0;top:100%;width:100%;height:100%;border-radius:7px;background:inherit;opacity:.8;transform-origin:50% 0}
+#ruler{position:absolute;left:0;top:30px;width:3700px;height:44px}
+#ruler span{position:absolute;top:0;font-family:var(--mono);font-size:18px;color:var(--mut);transform:translateX(-50%);padding-top:22px}
+#ruler span::before{content:"";position:absolute;left:50%;top:0;width:2px;height:16px;background:var(--mut);opacity:.6}
+.dead{position:absolute;top:96px;height:200px;border-left:2px dashed var(--mut);border-right:2px dashed var(--mut);background:repeating-linear-gradient(135deg,rgba(20,22,26,.07) 0 8px,transparent 8px 16px)}
+.dead span{position:absolute;left:50%;bottom:-40px;transform:translateX(-50%);font-family:var(--mono);font-size:20px;white-space:nowrap;color:var(--mut)}
+#pin{position:absolute;top:30px;width:4px;height:250px;background:var(--red);transform-origin:50% 100%}
+#pin::before{content:"";position:absolute;left:-12px;top:-14px;width:28px;height:28px;border-radius:50%;background:var(--red)}
+#pin span{position:absolute;left:18px;top:-18px;font-family:var(--mono);font-weight:600;font-size:22px;color:var(--red);white-space:nowrap}
+
+/* chat pile */
+#chat{position:absolute;left:1260px;top:110px;width:560px;height:480px;z-index:12}
+.msg{position:absolute;left:0;max-width:520px;padding:12px 20px 12px;border-radius:22px;background:#fff;box-shadow:0 10px 30px rgba(20,22,26,.12);font-size:28px;font-weight:600;line-height:1.15;color:var(--ink)}
+.msg small{display:block;font-family:var(--mono);font-size:15px;font-weight:400;color:var(--mut);margin-bottom:2px}
+
+/* transcript card + score gauges */
+#card{position:absolute;left:150px;top:230px;width:900px;padding:34px 40px;border-radius:28px;background:#fff;box-shadow:0 30px 80px rgba(20,22,26,.18);z-index:15}
+#card .row{display:flex;gap:22px;align-items:baseline;padding:14px 0;border-bottom:1px solid rgba(20,22,26,.08);font-size:44px;font-weight:600;letter-spacing:-.01em}
+#card .row:last-child{border-bottom:0}
+#card .row small{font-family:var(--mono);font-size:20px;font-weight:400;color:var(--mut);min-width:86px}
+#card .row mark{background:none;position:relative;padding:0 .08em}
+#card .row mark i{position:absolute;left:0;right:0;top:48%;bottom:-.02em;background:var(--yel);z-index:-1;transform-origin:0 50%;transform:scaleX(0)}
+#scores{position:absolute;left:1150px;top:230px;display:flex;gap:26px;z-index:15}
+.gauge{width:170px;height:330px;border-radius:26px;background:#fff;box-shadow:0 30px 80px rgba(20,22,26,.18);position:relative;overflow:hidden}
+.gauge .fill{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--yel)}
+.gauge .n{position:absolute;left:0;right:0;top:14px;text-align:center;font-size:92px;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--ink);mix-blend-mode:normal}
+.gauge .t{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-family:var(--mono);font-weight:600;font-size:19px;color:var(--ink)}
+#seg{position:absolute;left:0;top:0;width:1920px;height:1080px;z-index:11}
+.blk{position:absolute;top:600px;height:130px;border-radius:14px}
+.blk.d{background:repeating-linear-gradient(135deg,rgba(20,22,26,.1) 0 8px,rgba(20,22,26,.04) 8px 16px);border:2px dashed rgba(20,22,26,.35)}
+#keep{background:var(--ink);overflow:hidden;color:var(--paper)}
+#keep .ln{position:absolute;left:24px;height:12px;border-radius:6px;background:var(--yel)}
+#keep .big{position:absolute;left:0;right:0;top:50%;transform:translateY(-52%);text-align:center;font-weight:800;font-size:68px;letter-spacing:-.03em;opacity:0}
+#keep .sm{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-family:var(--mono);font-size:24px;color:var(--yel);opacity:0}
+#head{position:absolute;top:470px;width:4px;height:330px;background:var(--red);z-index:14}
+#head::before{content:"";position:absolute;left:-14px;top:-6px;border:16px solid transparent;border-top:24px solid var(--red)}
+.cutflash{position:absolute;top:470px;height:330px;width:8px;background:var(--yel);z-index:13;transform-origin:50% 50%}
+
+/* phone */
+#phone{position:absolute;left:880px;top:100px;width:495px;height:880px;z-index:20}
+#pin2{position:absolute;inset:0;border-radius:46px;overflow:hidden;background:#0A0C12;box-shadow:0 0 0 10px #2A2D35,0 0 0 12px #000,0 40px 90px rgba(0,0,0,.55)}
+#pbg{position:absolute;inset:-40px;background:radial-gradient(60% 40% at 30% 30%,#2A3D6B,#0C1226 70%);filter:blur(14px)}
+#media{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:linear-gradient(#0F1730,#1B2A4C 55%,#2B2733 56%,#15151B)}
+#media .lamp{position:absolute;left:230px;top:70px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(255,214,140,.65),transparent 66%)}
+#media .road{position:absolute;left:0;right:0;top:640px;bottom:0;background:linear-gradient(#2A2A33,#101015)}
+#media .car{position:absolute;top:520px;width:380px;height:150px;border-radius:50px 70px 18px 18px;background:#0A0B10}
+#media .fig{position:absolute;left:760px;top:330px;width:200px;height:560px}
+.fig .hh{position:absolute;left:62px;top:0;width:84px;height:92px;border-radius:50%;background:#D8A07E}
+.fig .tt{position:absolute;left:30px;top:96px;width:150px;height:230px;border-radius:50px 50px 18px 18px;background:#F3F3F0}
+.fig .lg{position:absolute;left:44px;top:318px;width:120px;height:240px;border-radius:18px;background:linear-gradient(#C9B28A 0 38%,#D8A07E 38%)}
+#media .cam{position:absolute;right:30px;top:30px;width:330px;height:200px;border-radius:18px;background:linear-gradient(135deg,#1E7D86,#144B63);border:5px solid #fff;overflow:hidden}
+.face{position:absolute;left:50%;top:50%;width:150px;height:170px;margin:-82px 0 0 -75px}
+.face .skin{position:absolute;inset:18px 6px 0;border-radius:50%;background:#D8A07E}
+.face .hair{position:absolute;left:4px;right:4px;top:6px;height:70px;border-radius:70px 70px 14px 14px;background:#1A1412}
+.face .e{position:absolute;top:84px;width:14px;height:18px;border-radius:50%;background:#1A1412}.face .e.l{left:42px}.face .e.r{right:42px}
+.face .mo{position:absolute;left:62px;top:122px;width:28px;height:30px;border-radius:50%;background:#5B1E1E}
+#blue{position:absolute;left:206px;top:0;width:990px;height:1080px;background:linear-gradient(160deg,#143E7A,#0B2A5E 60%,#0A1E45);opacity:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;color:#fff}
+#blue b{font-size:84px;font-weight:600;letter-spacing:.02em;text-align:center;padding:0 40px}
+#blue span{font-family:var(--mono);font-size:38px;opacity:.7;text-align:center;padding:0 80px}
+#fcp{position:absolute;left:30px;top:640px;width:435px;height:190px;border-radius:22px;background:linear-gradient(135deg,#1E7D86,#144B63);border:4px solid #fff;overflow:hidden;opacity:0}
+#fcp .face{transform:scale(.9)}
+#caps{position:absolute;left:20px;right:96px;top:600px;text-align:center;z-index:5;line-height:1.1}
+#caps .w{display:inline-block;margin:0 .14em;opacity:0;font-family:var(--disp);font-weight:800;color:#fff;-webkit-text-stroke:7px #000;paint-order:stroke fill;font-size:50px;text-transform:uppercase}
+#caps.hi .w{font-family:"Hind",var(--disp);font-size:46px;text-transform:none;font-weight:700}
+#safe{position:absolute;left:22px;right:73px;top:78px;bottom:174px;border:3px dashed var(--yel);border-radius:10px;opacity:0;z-index:6}
+#safe::after{content:"safe area";position:absolute;left:10px;top:6px;font-family:var(--mono);font-size:18px;color:var(--yel)}
+#presets{position:absolute;left:110px;top:300px;width:700px;z-index:20;color:var(--paper)}
+#presets .p{display:flex;align-items:center;gap:22px;padding:20px 0;font-size:60px;white-space:nowrap;font-weight:600;letter-spacing:-.025em;opacity:.28}
+#presets .p i{width:16px;height:16px;border-radius:50%;background:var(--yel);transform:scale(0)}
+#presets .p small{font-family:var(--mono);font-size:20px;font-weight:400;opacity:.7;margin-left:auto}
+
+/* gate */
+#gate{position:absolute;left:1010px;top:200px;width:760px;padding:34px 40px;border-radius:28px;background:var(--paper);color:var(--ink);z-index:20;box-shadow:0 40px 100px rgba(0,0,0,.5)}
+#gate h4{font-family:var(--mono);font-weight:600;font-size:22px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+.gr{display:flex;align-items:center;gap:22px;padding:16px 0;border-bottom:1px solid rgba(20,22,26,.1);font-size:35px;font-weight:600;letter-spacing:-.015em}
+.gr:last-of-type{border-bottom:0}
+.gr .c{width:44px;height:44px;border-radius:50%;background:rgba(20,22,26,.1);position:relative;flex:none}
+.gr .c svg{position:absolute;inset:0;opacity:0}
+.gr small{font-family:var(--mono);font-size:19px;color:#8a6a00;margin-left:auto;opacity:0;font-weight:600}
+#btn{margin-top:22px;display:inline-block;padding:18px 34px;border-radius:99px;background:var(--ink);color:var(--paper);font-weight:800;font-size:32px;letter-spacing:-.01em}
+#stamp{position:absolute;left:590px;top:300px;z-index:25;font-family:var(--mono);font-weight:600;font-size:40px;padding:8px 22px;border:5px solid var(--yel);border-radius:12px;color:var(--yel);transform:rotate(-8deg);background:rgba(20,22,26,.55);letter-spacing:.06em}
+#cur{position:absolute;left:0;top:0;width:54px;height:54px;z-index:40}
+
+/* wordmark */
+#mark{position:absolute;left:300px;top:380px;width:200px;height:200px;border-radius:50px;background:var(--ink);z-index:22}
+#mark .d{position:absolute;left:62px;top:44px;width:76px;height:76px;border-radius:50%;background:var(--red)}
+#mark .l1,#mark .l2{position:absolute;height:14px;border-radius:7px;background:var(--yel)}
+#mark .l1{left:44px;width:112px;top:140px}#mark .l2{left:70px;width:60px;top:162px}
+#wm{left:560px;top:352px;font-size:230px;font-weight:800;letter-spacing:-.05em}
+#url{position:absolute;left:566px;top:640px;font-family:var(--mono);font-size:44px;font-weight:600;color:var(--ink);z-index:22}
+#url span{color:var(--red)}
+
+/* debug panel (?debug=1) */
+#ui{display:none;position:fixed;left:50%;bottom:14px;transform:translateX(-50%);align-items:center;gap:12px;padding:10px 16px;border-radius:14px;background:rgba(20,22,26,.92);color:#cfd3da;font:13px var(--mono);z-index:99}
+#ui.on{display:flex}#ui button{background:#2d3139;color:#fff;border:0;padding:7px 14px;border-radius:8px;cursor:pointer}#scrub{width:360px}
+
+/* ---------- static section below the film ---------- */
+main{max-width:1120px;margin:0 auto;padding:96px 28px 40px}
+.kick{font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);font-weight:600}
+main h2{font-size:clamp(34px,5vw,56px);letter-spacing:-.03em;line-height:1.05;margin:12px 0 18px;font-weight:600}
+main p.lead{font-size:20px;line-height:1.55;color:#3A3D44;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin:40px 0 72px}
+.c{background:#fff;border-radius:22px;padding:24px;box-shadow:0 14px 40px rgba(20,22,26,.07)}
+.c b{display:block;font-size:22px;letter-spacing:-.015em;margin-bottom:8px}.c span{color:#4A4E56;line-height:1.5;font-size:16px}
+.steps{counter-reset:s;display:grid;gap:14px;margin:30px 0 60px}
+.st{display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start}
+.st::before{counter-increment:s;content:counter(s);width:44px;height:44px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--mono);font-weight:600}
+pre{background:var(--ink);color:#E9E6DD;border-radius:16px;padding:20px 24px;font:15px/1.6 var(--mono);overflow:auto}
+pre .k{color:var(--yel)}
+.shorts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:30px 0 72px}.shorts a{text-decoration:none;color:var(--ink);font-size:14px;font-weight:600}.shorts img{width:100%;aspect-ratio:9/12;object-fit:cover;border-radius:16px;display:block;margin-bottom:8px;box-shadow:0 14px 40px rgba(20,22,26,.12)}
+.btns{display:flex;gap:14px;flex-wrap:wrap;margin-top:26px}
+.btns a{display:inline-block;padding:14px 26px;border-radius:99px;text-decoration:none;font-weight:800;font-size:17px;letter-spacing:-.01em}
+.btns .pri{background:var(--ink);color:var(--paper)}.btns .sec{border:2px solid var(--ink);color:var(--ink)}
+footer{max-width:1120px;margin:0 auto;padding:30px 28px 70px;color:var(--mut);font-size:14px;line-height:1.6;border-top:1px solid rgba(20,22,26,.12)}
+@media(prefers-reduced-motion:reduce){#grain{display:none}}
+</style>
+</head>
+<body>
+<svg id="filters"><defs></defs></svg>
+
+<section id="hero" aria-label="Clip Studio: a three hour stream is cut down to one tight vertical Short">
+<div id="stage"><div id="world">
+  <div id="paper"><i class="b b1"></i><i class="b b2"></i><div id="grid"></div></div>
+
+  <div id="top"><div id="live"><i></i>LIVE</div><div id="tc">stream 00:00:00</div></div>
+
+  <!-- the stream: one timeline world, A-C -->
+  <div id="strip">
+    <div id="ruler"></div>
+    <div id="bars"></div>
+    <div id="pin" class="h"><span>peak</span></div>
+  </div>
+  <h1 class="hd h" id="h1" style="left:110px;top:210px;font-size:150px">3 hours of live stream</h1>
+  <h1 class="hd h" id="h2" style="left:110px;top:140px;font-size:96px">mostly noise</h1>
+  <div id="chat"></div>
+  <h1 class="hd h" id="h3" style="left:150px;top:96px;font-size:110px">find the <em>payoff</em></h1>
+  <div id="card" class="h">
+    <div class="row"><small>[12.7]</small><span>I have an experience guys</span></div>
+    <div class="row"><small>[30.2]</small><span><mark>Controller disconnect<i></i></mark></span></div>
+    <div class="row"><small>[31.0]</small><span style="font-family:Hind,var(--disp)">ए मेरा डिसकनेक्ट हो गया कंट्रोलर</span></div>
+  </div>
+  <div id="scores">
+    <div class="gauge h"><div class="fill"></div><div class="n">0</div><div class="t">hook</div></div>
+    <div class="gauge h"><div class="fill"></div><div class="n">0</div><div class="t">clarity</div></div>
+    <div class="gauge h"><div class="fill"></div><div class="n">0</div><div class="t">payoff</div></div>
+  </div>
+
+  <!-- the cut -->
+  <div id="seg">
+    <h1 class="hd h" id="h4" style="left:110px;top:150px;font-size:136px">keep what pays off</h1>
+    <div class="blk d h" id="d0" style="left:110px;width:560px"></div>
+    <div class="blk d h" id="d1" style="left:700px;width:110px"></div>
+    <div class="blk h" id="keep" style="left:840px;width:240px"><i class="ln" style="top:26px;width:150px"></i><i class="ln" style="top:52px;width:90px"></i><i class="ln" style="top:78px;width:170px"></i><div class="big">16.5 s</div><div class="sm">payoff at 7.4 s</div></div>
+    <div class="blk d h" id="d2" style="left:1110px;width:120px"></div>
+    <div class="blk d h" id="d3" style="left:1260px;width:550px"></div>
+    <div id="head" class="h"></div>
+    <i class="cutflash h" id="cf1"></i><i class="cutflash h" id="cf2"></i>
+  </div>
+
+  <div id="ink"></div>
+
+  <!-- phone -->
+  <div id="presets" class="h">
+    <div class="p"><i></i>context</div>
+    <div class="p"><i></i>gameplay</div>
+    <div class="p"><i></i>gameplay + cam</div>
+  </div>
+  <div id="phone" class="h"><div id="pin2">
+    <div id="pbg"></div>
+    <div id="media"><i class="lamp"></i><i class="road"></i><i class="car" style="left:90px"></i><i class="car" style="left:1180px;width:440px"></i>
+      <div class="fig"><i class="hh"></i><i class="tt"></i><i class="lg"></i></div>
+      <div class="cam" id="camsrc"><div class="face"><i class="skin"></i><i class="hair"></i><i class="e l"></i><i class="e r"></i><i class="mo"></i></div></div>
+      <div id="blue"><b>CONTROLLER DISCONNECTED</b><span>Connect your wireless controller to play the game.</span></div>
+    </div>
+    <div id="fcp"><div class="face"><i class="skin"></i><i class="hair"></i><i class="e l"></i><i class="e r"></i><i class="mo"></i></div></div>
+    <div id="caps" class="hi"></div>
+    <div id="safe"></div>
+  </div></div>
+
+  <!-- gate -->
+  <div id="gate" class="h">
+    <h4>quality gate</h4>
+    <div class="gr"><span class="c"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="#14161A"/><path d="M12 23l7 7 13-14" stroke="#F4F1EA" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>1080 × 1920, 16.5 s</div>
+    <div class="gr"><span class="c"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="#14161A"/><path d="M12 23l7 7 13-14" stroke="#F4F1EA" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>no dead air, no black</div>
+    <div class="gr"><span class="c"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="#14161A"/><path d="M12 23l7 7 13-14" stroke="#F4F1EA" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>captions inside the safe area</div>
+    <div class="gr"><span class="c"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="#14161A"/><path d="M12 23l7 7 13-14" stroke="#F4F1EA" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>not a duplicate</div>
+    <div class="gr"><span class="c"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="#FFE000"/><path d="M22 11v14" stroke="#14161A" stroke-width="5" stroke-linecap="round"/><circle cx="22" cy="33" r="3" fill="#14161A"/></svg></span>quoted payoff found in transcript<small>human check</small></div>
+    <span id="btn" class="h">Approve &amp; render</span>
+  </div>
+  <div id="stamp" class="h">REVIEW</div>
+  <svg id="cur" class="h" viewBox="0 0 54 54"><path d="M8 4l30 24-13 2 8 16-8 4-8-16-9 9z" fill="#fff" stroke="#14161A" stroke-width="3" stroke-linejoin="round"/></svg>
+
+  <!-- wordmark -->
+  <div id="mark" class="h"><i class="d"></i><i class="l1"></i><i class="l2"></i></div>
+  <h1 class="hd h" id="wm">Clip Studio</h1>
+  <div id="url" class="h">github.com/<span>gaur-adi</span>/clip-studio</div>
+  <div id="grain"></div>
+</div></div>
+<div id="ui"><button id="b-play">Pause</button><button id="b-rs">Restart</button><input id="scrub" type="range" min="0" max="1000" value="0"><span id="clk">0.00s</span></div>
+</section>
+
+<main>
+  <div class="kick">Local · free tools · you approve</div>
+  <h2>From a three-hour stream to a Short you can trust.</h2>
+  <p class="lead">Clip Studio watches live streams with a rolling buffer, plans a real edit around the payoff, renders 1080×1920 video with Hindi or English captions, and checks quality before anything reaches your output folder. It never uploads or publishes unless you do it yourself.</p>
+  <div class="grid">
+    <div class="c"><b>Plans the edit</b><span>A model reads the timestamped transcript and picks setup, payoff and reaction, with quotes checked against what was actually said.</span></div>
+    <div class="c"><b>Honest scores</b><span>Hook, clarity and payoff are gated separately. High energy cannot rescue a clip with no ending.</span></div>
+    <div class="c"><b>Safe framing</b><span>Context, gameplay and gameplay + facecam presets keep captions out of the phone UI.</span></div>
+    <div class="c"><b>Fails safe</b><span>No transcript or a model error means a clip goes to review, never silently approved.</span></div>
+  </div>
+<div class="kick">Proof</div><h2>Real Shorts made with it.</h2><p class="lead">Public Shorts produced with earlier versions of this workflow. Click to watch on YouTube. The footage belongs to the streamers and the game publisher; these were published with commentary and credit, and this repository contains no streamer footage.</p><div class="shorts"><a href="https://www.youtube.com/shorts/gFTFD-ljBS0" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/gFTFD-ljBS0/hqdefault.jpg" alt="Short: Panic after one wrong turn"><span>Panic after one wrong turn</span></a><a href="https://www.youtube.com/shorts/FYQ5lZLApS4" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/FYQ5lZLApS4/hqdefault.jpg" alt="Short: The helicopter is still behind him"><span>The helicopter is still behind him</span></a><a href="https://www.youtube.com/shorts/577Y_pYcmTk" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/577Y_pYcmTk/hqdefault.jpg" alt="Short: Florida drivers"><span>Florida drivers</span></a><a href="https://www.youtube.com/shorts/f6Iocca-Bp8" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/f6Iocca-Bp8/hqdefault.jpg" alt="Short: Hands off the delivery partner"><span>Hands off the delivery partner</span></a><a href="https://www.youtube.com/shorts/8Fx1_JGpIaw" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/8Fx1_JGpIaw/hqdefault.jpg" alt="Short: Chaos on the way to the bank"><span>Chaos on the way to the bank</span></a><a href="https://www.youtube.com/shorts/mEO6OHScHfY" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/mEO6OHScHfY/hqdefault.jpg" alt="Short: He was not ready for this"><span>He was not ready for this</span></a></div>
+  <div class="kick">Run it</div>
+  <h2>Three commands.</h2>
+  <div class="steps">
+    <div class="st"><div><p class="lead">Clone and install</p><pre>git clone https://github.com/gaur-adi/clip-studio.git && cd clip-studio
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt</pre></div></div>
+    <div class="st"><div><p class="lead">Point it at your Ollama host</p><pre>echo "http://YOUR-LLM-HOST:11434" &gt; ollama_host.txt
+echo "gemma4:12b" &gt; ollama_model.txt</pre></div></div>
+    <div class="st"><div><p class="lead">Start the local app</p><pre>./run_app.sh   <span class="k"># http://127.0.0.1:8765, local only</span></pre></div></div>
+  </div>
+  <div class="btns"><a class="pri" href="https://github.com/gaur-adi/clip-studio">View on GitHub</a><a class="sec" href="https://github.com/gaur-adi/clip-studio/blob/main/docs/ENGINE.md">How the engine works</a></div>
+</main>
+<footer>Released under the <a href="https://github.com/gaur-adi/clip-studio/blob/main/LICENSE">MIT license</a>. Experimental. Score thresholds (7/7/7) are starting values, not validated predictors. Only clip content you have permission to reuse, follow the game publisher's video policy, and add real commentary.</footer>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const Q=new URLSearchParams(location.search);
+
+/* ---------- deterministic helpers (no clock, no Math.random) ---------- */
+const nz=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const defs=$('#filters defs'); let fc=0;
+function makeBlur(){const id='mb'+(fc++),NS='http://www.w3.org/2000/svg',f=document.createElementNS(NS,'filter');f.id=id;
+  f.setAttribute('x','-70%');f.setAttribute('y','-70%');f.setAttribute('width','240%');f.setAttribute('height','240%');
+  const g=document.createElementNS(NS,'feGaussianBlur');g.setAttribute('stdDeviation','0 0');f.appendChild(g);defs.appendChild(f);return {url:`url(#${id})`,node:g};}
+function blurTween(tl,targets,at,from,to,dur,{ease='power3.out',ax=1,ay=.08}={}){const b=makeBlur(),o={v:from};
+  tl.set(targets,{filter:b.url},at);
+  tl.to(o,{v:to,duration:dur,ease,onUpdate(){b.node.setAttribute('stdDeviation',`${(o.v*ax).toFixed(2)} ${(o.v*ay).toFixed(2)}`)}},at);
+  tl.set(targets,{filter:'none'},at+dur);}
+function splitWords(el){const nodes=[...el.childNodes];el.textContent='';const out=[];
+  nodes.forEach(n=>{const txt=n.textContent;const host=n.nodeType===1?n.cloneNode(false):null;
+    txt.split(' ').filter(Boolean).forEach(w=>{const wd=document.createElement('span');wd.className='wd';const s=document.createElement('span');s.textContent=w;wd.appendChild(s);
+      if(host){const h=host.cloneNode(false);h.appendChild(wd);el.appendChild(h);}else el.appendChild(wd);out.push(s);});});
+  return out;}
+const fmt=s=>{s=Math.round(s);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':')};
+
+/* ---------- build the world ---------- */
+const BAR=24, N=150;
+const DEAD=[[18,26],[48,60],[80,88],[96,104]];
+const isDead=i=>DEAD.some(([a,b])=>i>=a&&i<=b);
+const SPIKE=[112,117];
+{const bars=$('#bars'),ruler=$('#ruler');
+ for(let i=0;i<N;i++){const b=document.createElement('b');let h;
+   if(isDead(i)) h=6+nz(i)*6;
+   else if(i>=SPIKE[0]&&i<=SPIKE[1]){h=[64,110,170,196,128,70][i-SPIKE[0]];b.style.background='var(--red)';}
+   else {const base=24+nz(i)*64,env=.6+.4*Math.sin(i*.37)+.3*Math.sin(i*.11);h=Math.max(14,base*Math.max(.55,env));}
+   b.style.left=(i*BAR)+'px';b.style.height=(h)+'px';b.style.bottom='100px';b.dataset.i=i;bars.appendChild(b);
+   if(i%10===0){const s=document.createElement('span');const m=Math.round(i*72/60);s.textContent=`${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`;s.style.left=(i*BAR+7)+'px';ruler.appendChild(s);}}
+ DEAD.forEach(([a,b],k)=>{const d=document.createElement('div');d.className='dead h';d.id='dead'+k;d.style.left=(a*BAR-4)+'px';d.style.width=((b-a+1)*BAR)+'px';d.innerHTML='<span>dead air</span>';$('#strip').appendChild(d);});
+ $('#pin').style.left=((SPIKE[0]+2.5)*BAR+5)+'px';}
+const MSGS=[['viewer_204','LOL'],['pogger','??'],['n0va','first'],['kira_xx','bro what'],['gamer_91','audio?'],['mod_sam','keep it clean'],['x_ravi','PLANE PLANE PLANE'],['luna','😂😂😂'],['dev_ak','lag?']];
+{const chat=$('#chat');MSGS.forEach((m,i)=>{const d=document.createElement('div');d.className='msg h';d.innerHTML=`<small>${m[0]}</small>${m[1]}`;d.dataset.k=i;chat.appendChild(d);});}
+
+/* ---------- timeline ---------- */
+const DURATION=35;
+const tl=gsap.timeline({paused:true});
+const rig=$('#world');
+const SPIKE_X=(SPIKE[0]+2.5)*BAR+7;
+
+/* camera breathes the whole way; a real push happens only where the story asks for it */
+tl.fromTo(rig,{scale:1},{scale:1.03,duration:8.5,ease:'sine.inOut',immediateRender:false,transformOrigin:'50% 55%'},0);
+tl.to(rig,{scale:1,duration:2,ease:'sine.inOut'},10.5);
+tl.fromTo(rig,{scale:1},{scale:1.035,duration:6,ease:'sine.inOut',immediateRender:false,transformOrigin:'50% 50%'},20);
+tl.to(rig,{scale:1,duration:2,ease:'sine.inOut'},27);
+
+/* background life: grid breathes, blobs drift, grain steps (9 fps) */
+tl.fromTo('#grid',{scale:1,rotate:0},{scale:1.06,rotate:.6,duration:35,ease:'sine.inOut',immediateRender:false},0);
+tl.fromTo('#paper .b1',{x:0,y:0},{x:160,y:90,duration:35,ease:'sine.inOut',immediateRender:false},0);
+tl.fromTo('#paper .b2',{x:0,y:0},{x:-190,y:-110,duration:35,ease:'sine.inOut',immediateRender:false},0);
+tl.fromTo('#grain',{x:0,y:0},{x:-300,y:-300,duration:35,ease:'steps(315)',immediateRender:false},0);
+/* LIVE dot: pulse by sine of timeline time */
+const dot=$('#live i');
+const pulse={v:0};tl.to(pulse,{v:35,duration:35,ease:'none',onUpdate(){const k=(Math.sin(pulse.v*Math.PI*1.4)+1)/2;dot.style.opacity=(.35+.65*k).toFixed(2);dot.style.boxShadow=`0 0 0 ${Math.round(k*14)}px rgba(255,75,43,${(.28*(1-k)).toFixed(2)})`;}},0);
+
+/* ===== A  0-3.4  the stream ===== */
+const h1=splitWords($('#h1'));
+tl.set('#h1',{autoAlpha:1},.15);
+tl.fromTo(h1,{opacity:0,yPercent:70,rotateX:-60},{opacity:1,yPercent:0,rotateX:0,duration:.8,ease:'back.out(1.4)',stagger:.12,immediateRender:false},.25);
+blurTween(tl,'#h1',.25,30,0,.9,{ax:.1,ay:1});
+tl.fromTo('#strip',{x:900},{x:-420,duration:7.2,ease:'power1.inOut',immediateRender:false},0);
+tl.fromTo('#bars b',{scaleY:0},{scaleY:1,duration:.7,ease:'power3.out',stagger:{each:.006,from:'start'},immediateRender:false},.1);
+const tc={s:0};
+tl.to(tc,{s:8228,duration:7.1,ease:'power2.inOut',onUpdate(){$('#tc').textContent='stream '+fmt(tc.s);}},0);
+tl.to(h1,{opacity:0,yPercent:-80,duration:.45,ease:'power2.in',stagger:.05},3.0);
+blurTween(tl,'#h1',3.0,0,40,.6,{ease:'power2.in',ax:.1,ay:1});
+
+/* ===== B  3.4-8  the noise ===== */
+const h2=splitWords($('#h2'));
+tl.set('#h2',{autoAlpha:1},3.45);
+tl.fromTo(h2,{opacity:0,xPercent:-40},{opacity:1,xPercent:0,duration:.6,ease:'power4.out',stagger:.1,immediateRender:false},3.5);
+blurTween(tl,'#h2',3.5,40,0,.7,{ease:'power4.out'});
+DEAD.forEach((_,k)=>{tl.set('#dead'+k,{autoAlpha:1},4.0+k*.25);tl.fromTo('#dead'+k,{scaleY:0,transformOrigin:'50% 100%'},{scaleY:1,duration:.45,ease:'power3.out',immediateRender:false},4.0+k*.25);});
+const msgs=$$('.msg');
+msgs.forEach((m,i)=>{const y=400-((i%5)*104)-(Math.floor(i/5)*26), x=(i%2)*40+(i%3)*14, r=(nz(i+9)-.5)*6;
+  tl.set(m,{autoAlpha:1,x:x,y:y+260,rotate:r},3.9+i*.3);
+  tl.fromTo(m,{opacity:0,y:y+260,scale:.8},{opacity:1,y:y,scale:1,duration:.5,ease:'back.out(1.8)',immediateRender:false},3.9+i*.3);
+  tl.to(m,{y:y-30,opacity:.0,duration:.7,ease:'power2.in'},7.3+i*.03);});
+tl.set('#pin',{autoAlpha:1},6.9);
+tl.fromTo('#pin',{scaleY:0},{scaleY:1,duration:.5,ease:'back.out(1.6)',immediateRender:false},6.9);
+/* the story's one push: toward the spike */
+tl.set(rig,{transformOrigin:'50% 70%'},6.7);
+tl.to(rig,{scale:1.22,duration:.9,ease:'power2.inOut'},6.9);
+tl.to(h2,{opacity:0,yPercent:-60,duration:.4,ease:'power2.in',stagger:.05},7.2);
+/* strip eases so the spike sits dead centre */
+tl.to('#strip',{x:960-SPIKE_X,duration:3.4,ease:'power2.inOut'},7.2);
+
+/* ===== C  8-13  find the payoff ===== */
+tl.to(rig,{scale:1,duration:.9,ease:'power3.inOut'},8.1);
+const h3=splitWords($('#h3'));
+tl.set('#h3',{autoAlpha:1},8.2);
+tl.fromTo(h3,{opacity:0,scale:2.2},{opacity:1,scale:1,duration:.8,ease:'expo.out',stagger:{each:.08,from:'center'},immediateRender:false},8.25);
+blurTween(tl,'#h3',8.25,24,0,.8,{ease:'expo.out',ax:1,ay:1});
+tl.set('#card',{autoAlpha:1},8.7);
+tl.fromTo('#card',{y:120,opacity:0,rotate:-2},{y:0,opacity:1,rotate:0,duration:.8,ease:'power4.out',immediateRender:false},8.7);
+tl.fromTo('#card .row',{opacity:0,x:-30},{opacity:1,x:0,duration:.45,ease:'power3.out',stagger:.22,immediateRender:false},9.0);
+tl.fromTo('#card mark i',{scaleX:0},{scaleX:1,duration:.5,ease:'power3.out',immediateRender:false},9.9);
+$$('.gauge').forEach((g,i)=>{const v=[7,8,9][i],o={n:0};
+  tl.set(g,{autoAlpha:1},10.1+i*.18);
+  tl.fromTo(g,{y:80,opacity:0},{y:0,opacity:1,duration:.5,ease:'back.out(1.6)',immediateRender:false},10.1+i*.18);
+  tl.fromTo($('.fill',g),{height:0},{height:v*10+'%',duration:.9,ease:'power3.out',immediateRender:false},10.3+i*.18);
+  tl.fromTo(o,{n:0},{n:v,duration:.9,ease:'power3.out',immediateRender:false,onUpdate(){$('.n',g).textContent=Math.round(o.n);}},10.3+i*.18);});
+tl.to('#h3',{opacity:0,y:-50,duration:.4,ease:'power2.in'},12.5);
+tl.to(['#card','#scores'],{opacity:0,y:60,duration:.5,ease:'power2.in',stagger:.08},12.6);
+tl.set(['#card','.gauge'],{autoAlpha:0,immediateRender:false},13.3);
+
+/* ===== D  13-19  the cut ===== */
+tl.to('#strip',{opacity:0,y:30,duration:.5,ease:'power2.in'},12.7);
+const h4=splitWords($('#h4'));
+tl.set('#h4',{autoAlpha:1},13.1);
+tl.fromTo(h4,{opacity:0,yPercent:-70,scaleY:1.4},{opacity:1,yPercent:0,scaleY:1,duration:.7,ease:'power4.out',stagger:.1,immediateRender:false},13.15);
+blurTween(tl,'#h4',13.15,30,0,.8,{ax:.1,ay:1});
+['#d0','#d1','#keep','#d2','#d3'].forEach((s,i)=>{tl.set(s,{autoAlpha:1},13.3+i*.08);
+  tl.fromTo(s,{scaleY:0,transformOrigin:'50% 50%'},{scaleY:1,duration:.45,ease:'back.out(1.7)',immediateRender:false},13.3+i*.08);});
+tl.set('#head',{autoAlpha:1,x:110},14.0);
+tl.to('#head',{x:840,duration:.7,ease:'power2.inOut'},14.0);
+tl.set('#cf1',{autoAlpha:1,x:838},14.7);tl.fromTo('#cf1',{scaleY:0,opacity:1},{scaleY:1,duration:.12,ease:'power4.out',immediateRender:false},14.7);tl.to('#cf1',{opacity:0,scaleX:6,duration:.35,ease:'power2.out'},14.82);
+tl.to('#head',{x:1078,duration:.5,ease:'power2.inOut'},14.85);
+tl.set('#cf2',{autoAlpha:1,x:1076},15.35);tl.fromTo('#cf2',{scaleY:0,opacity:1},{scaleY:1,duration:.12,ease:'power4.out',immediateRender:false},15.35);tl.to('#cf2',{opacity:0,scaleX:6,duration:.35,ease:'power2.out'},15.47);
+tl.to('#head',{opacity:0,duration:.2},15.5);
+/* dead parts fall; the keeper closes the gap (ripple delete) */
+[['#d0',-14,.0],['#d1',-9,.06],['#d2',11,.12],['#d3',16,.18]].forEach(([s,r,d])=>{
+  tl.to(s,{y:560,rotate:r,opacity:0,duration:.8,ease:'power2.in'},15.6+d);});
+tl.to('#keep',{left:410,width:1100,duration:.9,ease:'power3.inOut'},16.1);
+tl.to('#keep .ln',{opacity:0,duration:.3},16.1);
+tl.to('#keep .big',{opacity:1,duration:.5,ease:'power3.out'},16.8);
+tl.to('#keep .sm',{opacity:1,duration:.5,ease:'power3.out'},17.2);
+tl.to('#h4',{opacity:0,y:-40,duration:.4,ease:'power2.in'},17.9);
+
+/* ===== E  19-26  the vertical Short ===== */
+/* ink wipes in from the keeper: background changes because of what the keeper becomes */
+tl.fromTo('#ink',{clipPath:'circle(0px at 960px 665px)'},{clipPath:'circle(1700px at 960px 665px)',duration:1.0,ease:'power3.in',immediateRender:false},18.2);
+tl.to('#top',{color:'#F4F1EA',duration:.3},18.9);
+tl.to('#keep',{scaleX:.28,scaleY:1.4,opacity:0,duration:.5,ease:'power2.in'},18.7);
+tl.set('#phone',{autoAlpha:1},19.0);
+tl.fromTo('#phone',{scale:.2,rotateY:80,y:200,opacity:0},{scale:1,rotateY:0,y:0,opacity:1,duration:.9,ease:'back.out(1.3)',immediateRender:false,transformPerspective:1400},19.0);
+/* media presets */
+const M='#media';
+tl.set(M,{x:0,y:300,scale:.258,transformOrigin:'0 0'},0);
+const media=(at,x,y,s,d=.7)=>tl.to(M,{x,y,scale:s,duration:d,ease:'power3.inOut'},at);
+/* presets list */
+tl.set('#presets',{autoAlpha:1},19.2);
+tl.fromTo('#presets .p',{opacity:0,x:-60},{opacity:.28,x:0,duration:.6,ease:'power4.out',stagger:.14,immediateRender:false},19.25);
+const pick=(i,at)=>{tl.to('#presets .p',{opacity:.28,duration:.25},at);tl.to($$('#presets .p i'),{scale:0,duration:.2},at);
+  tl.to($$('#presets .p')[i],{opacity:1,duration:.3},at+.05);tl.fromTo($$('#presets .p i')[i],{scale:0},{scale:1,duration:.4,ease:'back.out(3)',immediateRender:false},at+.05);};
+pick(0,19.6);
+media(21.0,-299,18,.78);pick(1,21.0);
+tl.to('#camsrc',{opacity:0,duration:.3},22.3);
+media(22.4,-103,70,.5);pick(2,22.4);
+tl.to('#fcp',{opacity:1,duration:.5},22.7);tl.to('#caps',{top:500,duration:.5,ease:'power3.inOut'},22.5);
+tl.fromTo('#fcp',{y:80},{y:0,duration:.5,ease:'back.out(1.4)',immediateRender:false},22.7);
+/* captions: chunk 1 (Hindi) then the payoff line (English, yellow) */
+const capEl=$('#caps');
+const chunk1=['मेरा','कंट्रोलर','डिसकनेक्ट','हो','गया'];
+const capWords1=chunk1.map(w=>{const s=document.createElement('span');s.className='w';s.textContent=w;capEl.appendChild(s);return s;});
+const capWords2=['controller','disconnect'].map(w=>{const s=document.createElement('span');s.className='w en';s.textContent=w;s.style.fontSize='48px';capEl.appendChild(s);return s;});
+capWords2.forEach(s=>s.style.display='none');
+capWords1.forEach((s,i)=>{const t=19.9+i*.34;
+  tl.fromTo(s,{opacity:0,y:20,scale:.6},{opacity:1,y:0,scale:1,duration:.22,ease:'back.out(2.4)',immediateRender:false},t);
+  tl.to(s,{color:'#FFE000',duration:.06},t);tl.to(s,{color:'#fff',duration:.12},t+.32);});
+tl.to(capWords1,{opacity:0,y:-14,duration:.25,ease:'power2.in'},23.1);
+tl.set(capWords1,{display:'none'},23.4);
+tl.set(capWords2,{display:'inline-block'},23.4);
+tl.set('#caps',{className:'en'},23.4);
+/* the special moment: the screen flips to the error and the payoff word lands yellow */
+tl.to('#blue',{opacity:1,duration:.12},23.55);
+tl.fromTo('#phone',{x:0},{x:6,duration:.05,yoyo:true,repeat:5,ease:'none',immediateRender:false},23.55);
+tl.to('#phone',{x:0,duration:.01},23.9);
+capWords2.forEach((s,i)=>{const t=23.6+i*.28;tl.fromTo(s,{opacity:0,scale:2.4,y:-12},{opacity:1,scale:1,y:0,duration:.25,ease:'expo.out',immediateRender:false},t);tl.to(s,{color:'#FFE000',duration:.05},t);});
+/* safe area */
+tl.to('#safe',{opacity:1,duration:.3},24.6);tl.to('#safe',{opacity:0,duration:.4},25.5);
+
+/* ===== F  26-31  the gate ===== */
+tl.to('#presets',{opacity:0,x:-60,duration:.4,ease:'power2.in'},25.7);
+tl.to('#phone',{x:-420,scale:.8,duration:.8,ease:'power3.inOut'},26.0);
+tl.set('#gate',{autoAlpha:1},26.4);
+tl.fromTo('#gate',{x:140,opacity:0},{x:0,opacity:1,duration:.7,ease:'power4.out',immediateRender:false},26.4);
+$$('#gate .gr').forEach((r,i)=>{const t=27.0+i*.34;const svg=$('svg',r);
+  tl.fromTo(svg,{opacity:0,scale:.2},{opacity:1,scale:1,duration:.3,ease:'back.out(3)',immediateRender:false},t);
+  if(i===4)tl.fromTo($('small',r),{opacity:0,x:12},{opacity:1,x:0,duration:.3,immediateRender:false},t+.2);});
+tl.set('#stamp',{autoAlpha:1},28.9);
+tl.fromTo('#stamp',{scale:2.2,opacity:0},{scale:1,opacity:1,duration:.25,ease:'expo.out',immediateRender:false},28.9);
+tl.set('#btn',{autoAlpha:1},29.1);
+tl.fromTo('#btn',{y:20,opacity:0},{y:0,opacity:1,duration:.4,ease:'power3.out',immediateRender:false},29.1);
+/* the cursor: a human decides */
+tl.set('#cur',{autoAlpha:1,x:1500,y:900},29.5);
+tl.to('#cur',{x:1180,y:728,duration:.7,ease:'power2.inOut'},29.5);
+tl.to('#cur',{scale:.85,duration:.08,yoyo:true,repeat:1},30.25);
+tl.to('#btn',{background:'#FFE000',color:'#14161A',duration:.2},30.3);
+tl.call(()=>{},null,30.3);
+tl.to('#stamp',{borderColor:'#7CFFB0',color:'#7CFFB0',duration:.2},30.35);
+const stampTxt=(t)=>tl.call(()=>{$('#stamp').textContent=t;},null,t);
+stampTxt('REVIEW');
+tl.call(()=>{$('#stamp').textContent='READY';},null,30.4);
+tl.call(()=>{$('#stamp').textContent='REVIEW';},null,30.35-.0001);   // keeps scrub order stable for time<30.4
+/* ===== G  31-35  wordmark ===== */
+tl.to(['#gate','#stamp','#cur'],{opacity:0,duration:.35,ease:'power2.in'},30.8);
+tl.fromTo('#ink',{clipPath:'circle(1700px at 960px 665px)'},{clipPath:'circle(0px at 560px 480px)',duration:1.1,ease:'power3.inOut',immediateRender:false},31.0);
+tl.to('#top',{color:'#14161A',duration:.4},31.9);
+tl.to('#phone',{x:-1010,y:-170,scale:.2,duration:1.0,ease:'power3.inOut'},31.0);
+tl.to('#phone',{opacity:0,duration:.25},31.85);
+tl.set('#mark',{autoAlpha:1},31.6);
+tl.fromTo('#mark',{scale:.1,rotate:-25},{scale:1,rotate:0,duration:.8,ease:'back.out(1.8)',immediateRender:false},31.7);
+const wm=splitWords($('#wm'));
+tl.set('#wm',{autoAlpha:1},31.9);
+tl.fromTo(wm,{opacity:0,xPercent:-30},{opacity:1,xPercent:0,duration:.7,ease:'power4.out',stagger:.14,immediateRender:false},32.0);
+blurTween(tl,'#wm',32.0,45,0,.8,{ease:'power4.out'});
+tl.set('#url',{autoAlpha:1},32.7);
+tl.fromTo('#url',{opacity:0,y:24},{opacity:1,y:0,duration:.6,ease:'power3.out',immediateRender:false},32.7);
+tl.to({}, {duration:.01}, DURATION);
+
+/* ---------- fit, controls, loop ---------- */
+const hero=$('#hero'),stage=$('#stage');
+const fit=()=>{const s=Math.min(hero.clientWidth/1920,hero.clientHeight/1080);stage.style.transform=`translate(-50%,-50%) scale(${s})`;};
+addEventListener('resize',fit);fit();
+const clk=$('#clk'),scrub=$('#scrub'),btn=$('#b-play');let scrubbing=false;
+(function loop(){const t=tl.time();clk.textContent=t.toFixed(2)+'s';if(!scrubbing)scrub.value=String(t/DURATION*1000);requestAnimationFrame(loop);})();
+const toggle=()=>{if(tl.paused()||tl.progress()>=1){if(tl.progress()>=1)tl.progress(0);tl.play();btn.textContent='Pause';}else{tl.pause();btn.textContent='Play';}};
+btn.onclick=toggle;$('#b-rs').onclick=()=>{tl.pause(0);tl.play();btn.textContent='Pause';};
+scrub.addEventListener('pointerdown',()=>{scrubbing=true;tl.pause();btn.textContent='Play';});
+addEventListener('pointerup',()=>scrubbing=false);
+scrub.addEventListener('input',()=>{tl.pause();tl.time(scrub.value/1000*DURATION);});
+addEventListener('keydown',e=>{if(e.code==='Space'&&e.target===document.body){e.preventDefault();toggle();}if(/^[rR]$/.test(e.key)){tl.pause(0);tl.play();}if(/^[hH]$/.test(e.key))$('#ui').classList.toggle('on');});
+if(Q.has('debug'))$('#ui').classList.add('on');
+tl.eventCallback('onComplete',()=>{tl.play(0);});
+const seek=t=>{tl.pause();tl.time(t,false);if(gsap.ticker.tick)gsap.ticker.tick();};
+window.OPENER={tl,DURATION,seek,W:1920,H:1080,ready:false};
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+document.fonts.ready.then(()=>{window.OPENER.ready=true;if(Q.has('clean'))return;if(reduce){tl.pause(31.5);}else tl.play(0);});
+/* pause the film while it is off-screen (the page below it is static) */
+new IntersectionObserver(es=>{es.forEach(e=>{if(Q.has('clean')||reduce||!window.OPENER.ready)return;if(!e.isIntersecting)tl.pause();else if(tl.paused()&&!scrubbing&&btn.textContent==='Pause')tl.play();});},{threshold:.05}).observe(hero);
+</script>
+</body>
+</html>
