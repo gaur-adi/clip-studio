@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/assets/social-preview.png" alt="Clip Studio: a 3-hour live stream to one tight vertical Short" width="720">
+
 # Clip Studio
 
 ### Free, open-source AI clipper that turns live streams into tightly edited YouTube Shorts
